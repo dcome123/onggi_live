@@ -213,6 +213,12 @@ wss.on('connection', (ws) => {
       p.lastSit = now;
       p.sit = (m.v === 1 || m.v === true) ? 1 : 0;
       broadcast(room, { t: 'sit', id: p.id, v: p.sit }, p.id);
+    } else if (m.t === 'call') {
+      // 온기봇 버튼: 온기봇이 부른 사람 쪽으로 와요.
+      if (now - (p.lastCall || 0) < 3000) return;
+      p.lastCall = now;
+      const bot = room.bot;
+      if (bot) { bot.tx = clamp(p.x + 4, 8, 92); bot.ty = clamp(p.y - 3, 8, 92); bot.visit = false; bot.wait = 0; }
     } else if (m.t === 'talk') {
       p.talk = (m.v === 1 || m.v === true) ? now + 120000 : 0;
     } else if (m.t === 'say') {
