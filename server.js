@@ -18,7 +18,8 @@ const LOOK_COUNT = 8;        // public/index.html 의 LOOKS 개수와 같아야 
 const MIN_MOVE_GAP = 40;     // ms, 이동 메시지 최소 간격
 const MIN_SAY_GAP = 1500;    // ms, 인사 최소 간격
 
-const X_MIN = 6, X_MAX = 94, Y_MIN = 54, Y_MAX = 93;
+// 마당 좌표는 가로·세로 모두 0~100 (50,50 이 한가운데). 화면이 이 값을 실제 거리로 바꿔 써요.
+const X_MIN = 2, X_MAX = 98, Y_MIN = 2, Y_MAX = 98;
 
 const ADJ = ['따뜻한','푸른','느긋한','고운','환한','잔잔한','든든한','맑은','포근한','싱그러운','넉넉한','은은한','다정한','고요한','반짝이는','향긋한'];
 const NOUN = ['햇살','하늘','구름','단풍','달빛','바람','바위','시냇물','솔잎','들꽃','노을','새벽','호수','언덕','별빛','국화'];
@@ -31,6 +32,11 @@ if (!htmlPath) {
   process.exit(1);
 }
 const indexHtml = fs.readFileSync(htmlPath);
+// 3D 라이브러리(three.min.js)가 같은 폴더(또는 public 폴더)에 있으면 이 서버가 직접 내려줘요.
+// 없으면 화면이 인터넷(cdnjs)에서 불러와요.
+const threePath = [path.join(__dirname, 'public', 'three.min.js'), path.join(__dirname, 'three.min.js')]
+  .find((p) => fs.existsSync(p));
+const threeJs = threePath ? fs.readFileSync(threePath) : null;
 
 const rooms = [];            // { id, players: Map }
 let nextPlayerId = 1;
@@ -68,7 +74,7 @@ function broadcast(room, obj, exceptId) {
     if (p.id !== exceptId && p.ws.readyState === 1) p.ws.send(msg);
   });
 }
-function pub(p) { return { id: p.id, name: p.name, look: p.look, x: p.x, y: p.y }; }
+function pub(p) { return { id: p.id, name: p.name, look: p.look, x: p.x, y: p.y, sit: p.sit ? 1 : 0 }; }
 
 const server = http.createServer((req, res) => {
   const url = (req.url || '/').split('?')[0];
@@ -76,6 +82,9 @@ const server = http.createServer((req, res) => {
   if (url === '/' || url === '/index.html') {
     res.writeHead(200, Object.assign({ 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache' }, base));
     res.end(indexHtml);
+  } else if (url === '/three.min.js' && threeJs) {
+    res.writeHead(200, Object.assign({ 'Content-Type': 'application/javascript; charset=utf-8', 'Cache-Control': 'public, max-age=86400' }, base));
+    res.end(threeJs);
   } else if (url === '/healthz') {
     res.writeHead(200, Object.assign({ 'Content-Type': 'text/plain' }, base));
     res.end('ok');
@@ -103,9 +112,9 @@ wss.on('connection', (ws) => {
     id: String(nextPlayerId++),
     name: pickName(room),
     look: rnd(LOOK_COUNT),
-    x: 35 + Math.random() * 30,
-    y: 70 + Math.random() * 18,
-    ws, room, lastMove: 0, lastSay: 0
+    x: 42 + Math.random() * 16,
+    y: 42 + Math.random() * 16,
+    ws, room, lastMove: 0, lastSay: 0, lastSit: 0, sit: 0
   };
   room.players.set(p.id, p);
   ws.isAlive = true;
@@ -133,6 +142,11 @@ wss.on('connection', (ws) => {
       p.x = clamp(x, X_MIN, X_MAX);
       p.y = clamp(y, Y_MIN, Y_MAX);
       broadcast(room, { t: 'move', id: p.id, x: p.x, y: p.y }, p.id);
+    } else if (m.t === 'sit') {
+      if (now - p.lastSit < 300) return;
+      p.lastSit = now;
+      p.sit = (m.v === 1 || m.v === true) ? 1 : 0;
+      broadcast(room, { t: 'sit', id: p.id, v: p.sit }, p.id);
     } else if (m.t === 'say') {
       const i = Number(m.i);
       if (!Number.isInteger(i) || i < 0 || i >= PHRASE_COUNT) return;
