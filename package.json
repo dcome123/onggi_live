@@ -1,0 +1,12 @@
+{
+  "name": "onggi-village-hall",
+  "version": "1.0.0",
+  "description": "온기 마을회관: 로그인 없이 들어와 방향키로 움직이는 실시간 마당",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test/sim.js"
+  },
+  "engines": { "node": ">=18" },
+  "dependencies": { "ws": "^8.18.0" }
+}
