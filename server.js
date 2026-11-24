@@ -18,6 +18,12 @@ const LOOK_COUNT = 8;        // public/index.html 의 LOOKS 개수와 같아야 
 const MIN_MOVE_GAP = 40;     // ms, 이동 메시지 최소 간격
 const MIN_SAY_GAP = 1500;    // ms, 인사 최소 간격
 
+// 온기봇(AI 안내 로봇): 방마다 한 대가 마을을 돌아다니며 정해진 안내 말만 해요.
+// 번호 9~14 는 온기봇만 쓸 수 있고, 사람이 보낸 번호는 0~8 만 받아요.
+const BOT_FIRST = PHRASE_COUNT, BOT_LINES = 6;
+const BOT_TICK = 250;        // ms
+const BOT_SPEED = 5;         // 좌표(0~100) 단위 / 초
+
 // 마당 좌표는 가로·세로 모두 0~100 (50,50 이 한가운데). 화면이 이 값을 실제 거리로 바꿔 써요.
 const X_MIN = 2, X_MAX = 98, Y_MIN = 2, Y_MAX = 98;
 
@@ -38,7 +44,7 @@ const threePath = [path.join(__dirname, 'public', 'three.min.js'), path.join(__d
   .find((p) => fs.existsSync(p));
 const threeJs = threePath ? fs.readFileSync(threePath) : null;
 
-const rooms = [];            // { id, players: Map }
+const rooms = [];            // { id, players: Map, bot }
 let nextPlayerId = 1;
 let nextRoomId = 1;
 
@@ -74,7 +80,67 @@ function broadcast(room, obj, exceptId) {
     if (p.id !== exceptId && p.ws.readyState === 1) p.ws.send(msg);
   });
 }
-function pub(p) { return { id: p.id, name: p.name, look: p.look, x: p.x, y: p.y, sit: p.sit ? 1 : 0 }; }
+function pub(p) { return { id: p.id, name: p.name, look: p.look, x: p.x, y: p.y, sit: p.sit ? 1 : 0, bot: p.bot ? 1 : 0 }; }
+
+// ---- 온기봇 ----
+// 화면의 마당 크기와 같은 값이에요(1칸 = 0.36). 연못과 느티나무 안으로는 들어가지 않아요.
+const OBST = [{ x: 27.78, y: 61.11, r: 9.17 }, { x: 88.33, y: 40.56, r: 4.17 }];
+const WAYPOINTS = [[50, 50], [50, 15.5], [72, 50], [41.5, 51], [33, 33], [67, 33], [50, 75], [58, 22]];
+function limitBot(b) {
+  const dx = b.x - 50, dy = b.y - 50, d = Math.sqrt(dx * dx + dy * dy), R = 45.8;
+  if (d > R) { b.x = 50 + dx / d * R; b.y = 50 + dy / d * R; }
+  OBST.forEach((o) => {
+    let px = b.x - o.x, py = b.y - o.y, pd = Math.sqrt(px * px + py * py);
+    if (pd < o.r) { if (pd < 0.01) { px = 1; py = 0; pd = 1; } b.x = o.x + px / pd * o.r; b.y = o.y + py / pd * o.r; }
+  });
+  b.x = clamp(b.x, X_MIN, X_MAX); b.y = clamp(b.y, Y_MIN, Y_MAX);
+}
+function ensureBot(room) {
+  if (room.bot) return room.bot;
+  const now = Date.now();
+  room.bot = { id: 'bot' + room.id, name: '온기봇', look: 0, bot: 1, x: 50, y: 20, tx: 50, ty: 30, sit: 0,
+    wait: now + 2000, visit: false, nextSay: now + 5000, intro: true };
+  return room.bot;
+}
+function botSay(room, bot, i) { broadcast(room, { t: 'say', id: bot.id, i }); }
+function botPickTarget(room, bot) {
+  const humans = Array.from(room.players.values());
+  if (humans.length && Math.random() < 0.5) {
+    const h = humans[rnd(humans.length)];
+    bot.tx = clamp(h.x + (Math.random() * 8 - 4), 8, 92); bot.ty = clamp(h.y + (Math.random() * 8 - 4), 8, 92); bot.visit = true;
+  } else {
+    const w = WAYPOINTS[rnd(WAYPOINTS.length)];
+    bot.tx = w[0] + (Math.random() * 4 - 2); bot.ty = w[1] + (Math.random() * 4 - 2); bot.visit = false;
+  }
+}
+function botTick() {
+  const now = Date.now(), dt = BOT_TICK / 1000;
+  rooms.forEach((room) => {
+    if (room.players.size === 0) return;
+    const bot = ensureBot(room);
+    // 누군가 온기봇과 이야기 중이면(최대 2분) 멈춰서 기다려요.
+    let busy = false;
+    room.players.forEach((h) => { if (h.talk && h.talk > now) busy = true; });
+    if (busy) { bot.nextSay = Math.max(bot.nextSay, now + 8000); return; }
+    if (now >= bot.nextSay) {
+      botSay(room, bot, bot.intro ? BOT_FIRST : BOT_FIRST + 1 + rnd(BOT_LINES - 1));
+      bot.intro = false; bot.nextSay = now + 14000 + rnd(10000);
+    }
+    if (now < bot.wait) return;
+    const dx = bot.tx - bot.x, dy = bot.ty - bot.y, d = Math.sqrt(dx * dx + dy * dy);
+    if (d < 1.5) {
+      bot.wait = now + 3500 + rnd(4500);
+      if (bot.visit) { botSay(room, bot, BOT_FIRST); bot.nextSay = Math.max(bot.nextSay, now + 8000); }
+      botPickTarget(room, bot);
+      return;
+    }
+    const step = Math.min(d, BOT_SPEED * dt);
+    bot.x += dx / d * step; bot.y += dy / d * step;
+    limitBot(bot);
+    broadcast(room, { t: 'move', id: bot.id, x: bot.x, y: bot.y });
+  });
+}
+const botTimer = setInterval(botTick, BOT_TICK);
 
 const server = http.createServer((req, res) => {
   const url = (req.url || '/').split('?')[0];
@@ -123,7 +189,7 @@ wss.on('connection', (ws) => {
     t: 'hello',
     me: pub(p),
     room: room.id,
-    peers: Array.from(room.players.values()).filter(o => o.id !== p.id).map(pub)
+    peers: Array.from(room.players.values()).filter(o => o.id !== p.id).concat([ensureBot(room)]).map(pub)
   });
   broadcast(room, { t: 'join', p: pub(p) }, p.id);
 
@@ -147,6 +213,8 @@ wss.on('connection', (ws) => {
       p.lastSit = now;
       p.sit = (m.v === 1 || m.v === true) ? 1 : 0;
       broadcast(room, { t: 'sit', id: p.id, v: p.sit }, p.id);
+    } else if (m.t === 'talk') {
+      p.talk = (m.v === 1 || m.v === true) ? now + 120000 : 0;
     } else if (m.t === 'say') {
       const i = Number(m.i);
       if (!Number.isInteger(i) || i < 0 || i >= PHRASE_COUNT) return;
@@ -175,7 +243,7 @@ const hb = setInterval(() => {
     try { ws.ping(); } catch (e) {}
   });
 }, 30000);
-wss.on('close', () => clearInterval(hb));
+wss.on('close', () => { clearInterval(hb); clearInterval(botTimer); });
 
 server.listen(PORT, () => {
   console.log('온기 마을회관 서버 시작: http://localhost:' + PORT + '  (방 정원 ' + ROOM_CAP + '명, 최대 ' + MAX_ROOMS + '개 방)');

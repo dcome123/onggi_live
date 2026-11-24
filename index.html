@@ -160,7 +160,9 @@ body.plaza .app{max-width:none}
 #panel-plaza{position:fixed;inset:0;gap:0;z-index:1}
 .scene{position:fixed;left:0;right:0;top:0;bottom:calc(3.8rem + env(safe-area-inset-bottom));overflow:hidden;touch-action:none;cursor:grab;background:#CFE8EE;border:0;border-radius:0;aspect-ratio:auto}
 .scene canvas{display:block;width:100%;height:100%;touch-action:none;-webkit-user-select:none;user-select:none}
-.bubble3{position:absolute;left:0;top:0;z-index:3;transform:translate(-50%,-100%);background:#fff;color:var(--ink);border:2px solid var(--primary);border-radius:.9rem;padding:.2rem .7rem;font-size:.95rem;font-weight:700;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .2s}
+.nm3.bot{background:#2F7F73;color:#fff}
+.bubble3.bot{background:#FFF8E6;border-color:#F2A93B}
+.bubble3{position:absolute;left:0;top:0;z-index:3;transform:translate(-50%,-100%);background:#fff;color:var(--ink);border:2px solid var(--primary);border-radius:.9rem;padding:.2rem .7rem;font-size:.95rem;font-weight:700;white-space:normal;width:max-content;max-width:min(15rem,70vw);text-align:center;opacity:0;pointer-events:none;transition:opacity .2s}
 .bubble3.show{opacity:1}
 .nm3{position:absolute;left:0;top:0;z-index:2;transform:translate(-50%,-100%);background:rgba(255,255,255,.82);color:#2b3a36;font-size:.78rem;font-weight:700;border-radius:999px;padding:.05rem .6rem;line-height:1.4;pointer-events:none;white-space:nowrap}
 .nm3.me{background:var(--accent);color:var(--accent-ink)}
@@ -192,6 +194,13 @@ body.plaza .app{max-width:none}
 .sheet .x{min-height:2.6rem;border-radius:999px;border:2px solid var(--line);background:var(--surface);padding:0 1rem;font-weight:700}
 body.plaza #panel-plaza ~ * {}
 nav{z-index:6}
+.help-q{margin:0;font-size:1.12rem;font-weight:700;color:var(--primary-dark,#14524a)}
+.help-list{display:flex;flex-direction:column;gap:.55rem}
+.help-steps{margin:0;padding-left:1.5rem;display:flex;flex-direction:column;gap:.5rem;font-size:1.02rem}
+.help-note{background:#FFF8E6;border:1px solid #F2D9A0;border-radius:.8rem;padding:.55rem .75rem;font-size:.92rem}
+.help-ai{font-size:.85rem;color:var(--muted,#55675f)}
+.help-row{display:flex;gap:.5rem;flex-wrap:wrap}
+.help-row .btn{flex:1 1 9rem}
 body.plaza nav{max-width:none}
 @media (max-height:620px){.toast{display:none}}
 @media (prefers-reduced-motion:reduce){.bubble3,#intro,.toast,.intro-bar i{transition:none}}
@@ -244,6 +253,7 @@ body.plaza nav{max-width:none}
     <div class="sheet-head"><h3 id="sheetTitle">인사하기</h3><button type="button" class="x" id="sheetX" aria-label="닫기">닫기</button></div>
     <div id="sec-greet"><div class="grid2" id="greet"></div></div>
     <div id="sec-talk" hidden><p class="hint">정해진 문장 중에서 골라 말해요. 직접 쓰는 대화는 안전 장치를 갖춘 뒤 2단계에서 열어요.</p><div class="chips" id="talk"></div></div>
+    <div id="sec-help" hidden><p class="help-q" id="helpQ"></p><div class="help-list" id="helpList"></div></div>
     <div id="sec-feed" hidden><ul class="feed" id="feed" role="log" aria-live="polite"></ul><p class="hint" id="feedHint">다른 분들의 인사와 대답은 시연을 위한 예시예요.</p></div>
   </div>
 
@@ -427,6 +437,8 @@ body.plaza nav{max-width:none}
 
   /* ---------- 마당 (3D, 실시간 접속 / 서버가 없으면 시연 모드) ---------- */
   var PHRASES = ['안녕하세요','건강하세요','식사하셨어요?','반가워요','오늘 날씨가 참 좋네요','산책 다녀오셨어요?','점심은 맛있게 드셨어요?','요즘 취미가 뭐예요?','내일 또 만나요'];
+  /* 온기봇이 하는 안내 말 (서버 번호 9~14). 사람은 보낼 수 없어요. */
+  var BOT_LINES = ['안녕하세요, 저는 온기봇이에요', '오늘 기분은 어떠세요?', '물 한 잔 드시고 쉬어 가세요', '어깨를 한 번 쭉 펴 볼까요?', '연못가 의자에서 쉬어 가세요', '궁금한 건 상담 탭에서 안내해 드려요'];
   var GREET_N = 4; /* 앞의 4개는 인사 버튼, 나머지는 이야기 버튼 */
   var REPLIES = ['안녕하세요, 반가워요','네, 고맙습니다','네, 맛있게 먹었어요','저도 반가워요','네, 정말 좋아요','저도 막 다녀왔어요','네, 든든하게 먹었어요','저는 화분 가꾸는 게 재미있어요','네, 내일 또 만나요'];
   var LOOKS = [
@@ -445,7 +457,7 @@ body.plaza nav{max-width:none}
   var peers = {}, meId = null, mode = 'connecting', ws = null, everLive = false, retry = 0;
   var lastSay = 0, demoTimers = [], smoothK = 9;
   var T = null, renderer = null, camera = null, world = null, canvas = null, marker = null;
-  var walkTo = null, yaw = 0, pitch = 0.5, camDist = 16, camT = {x:0, z:0};
+  var lookY = 3.2, walkTo = null, yaw = 0, pitch = 0.5, camDist = 16, camT = {x:0, z:0};
   function clamp(v,a,b){ return Math.min(b, Math.max(a, v)); }
 
   /* 좌표 바꾸기 */
@@ -460,7 +472,7 @@ body.plaza nav{max-width:none}
     }
     return o;
   }
-  function updateCount(){ $('#count').textContent = String(Object.keys(peers).length); }
+  function updateCount(){ $('#count').textContent = String(Object.keys(peers).filter(function(k){ return !peers[k].bot; }).length); }
 
   /* ---------- 3D 세계 만들기 ---------- */
   function rng(seed){ return function(){ seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; }; }
@@ -736,22 +748,53 @@ body.plaza nav{max-width:none}
     for(var i = 0; i < SEATS.length; i++){ if(Math.abs(SEATS[i].x - x) < 0.7 && Math.abs(SEATS[i].z - z) < 0.7) return SEATS[i]; }
     return null;
   }
+  var BOT_GEO = null;
+  function makeBot(){
+    if(!BOT_GEO){
+      BOT_GEO = {
+        body: new T.SphereGeometry(0.52, 20, 16), head: new T.SphereGeometry(0.47, 22, 16),
+        eye: new T.SphereGeometry(0.06, 8, 6), ear: new T.CylinderGeometry(0.13, 0.13, 0.14, 12),
+        arm: new T.CylinderGeometry(0.07, 0.07, 0.5, 8), hand: new T.SphereGeometry(0.11, 8, 6),
+        bulb: new T.SphereGeometry(0.09, 10, 8), shadow: new T.CircleGeometry(0.7, 20), ring: new T.RingGeometry(0.78, 0.94, 28)
+      };
+    }
+    var g = new T.Group(), white = lam(0xF4F1EA), warm = new T.MeshBasicMaterial({color:0xF2A93B}), glow = new T.MeshBasicMaterial({color:0xFFD479});
+    var body = put(BOT_GEO.body, white, 0, 0.66, 0, g); body.scale.set(1, 1.1, 0.95);
+    var badge = put(new T.CircleGeometry(0.15, 14), warm, 0, 0.72, 0.5, g);
+    var head = put(BOT_GEO.head, white, 0, 1.6, 0, g); head.scale.set(1.2, 0.95, 1.0);
+    put(new T.BoxGeometry(0.66, 0.38, 0.1), lam(0x2B3A36), 0, 1.58, 0.43, g);
+    put(BOT_GEO.eye, glow, -0.15, 1.61, 0.5, g); put(BOT_GEO.eye, glow, 0.15, 1.61, 0.5, g);
+    var sm = put(new T.TorusGeometry(0.09, 0.022, 6, 16, Math.PI), glow, 0, 1.54, 0.5, g); sm.rotation.z = Math.PI;
+    [-0.56, 0.56].forEach(function(x){ var e = put(BOT_GEO.ear, warm, x, 1.6, 0, g); e.rotation.z = Math.PI / 2; });
+    put(new T.CylinderGeometry(0.025, 0.025, 0.34, 6), lam(0x9AA0A6), 0, 2.2, 0, g);
+    g.userData.bulb = put(BOT_GEO.bulb, warm, 0, 2.42, 0, g);
+    function arm(side){
+      var pv = new T.Group(); pv.position.set(side * 0.55, 1.05, 0);
+      put(BOT_GEO.arm, lam(0xE3DFD4), 0, -0.25, 0, pv); put(BOT_GEO.hand, warm, 0, -0.54, 0, pv);
+      pv.rotation.z = side * 0.25; g.add(pv); return pv;
+    }
+    g.userData.armR = arm(1); g.userData.armL = arm(-1);
+    var sh = put(BOT_GEO.shadow, new T.MeshBasicMaterial({color:0x000000, transparent:true, opacity:0.18}), 0, 0.04, 0, g); sh.rotation.x = -Math.PI / 2;
+    var rg = put(BOT_GEO.ring, new T.MeshBasicMaterial({color:0x2F7F73, transparent:true, opacity:0.75, side:T.DoubleSide}), 0, 0.05, 0, g); rg.rotation.x = -Math.PI / 2;
+    g.scale.setScalar(1.12);
+    return g;
+  }
   function addPeer(d, isMe){
     if(peers[d.id] || !T) return peers[d.id];
     var look = LOOKS[(Math.abs(parseInt(d.look, 10)) || 0) % LOOKS.length];
     var w = toWorld(d.x, d.y);
-    var g = makeAvatar(look, isMe);
+    var g = d.bot ? makeBot() : makeAvatar(look, isMe);
     g.position.set(w.x, 0, w.z);
     g.rotation.y = isMe ? Math.PI : 0;
     world.add(g);
     var bub = document.createElement('div');
-    bub.className = 'bubble3';
+    bub.className = 'bubble3' + (d.bot ? ' bot' : '');
     scene.appendChild(bub);
     var p = {id:d.id, name:String(d.name), g:g, bub:bub, tag:null, timer:null, showing:false,
-             x:w.x, z:w.z, tx:w.x, tz:w.z, isMe:!!isMe, moving:false, phase:Math.random()*6, k:smoothK, sit:d.sit ? 1 : 0};
+             x:w.x, z:w.z, tx:w.x, tz:w.z, isMe:!!isMe, moving:false, phase:Math.random()*6, k:smoothK, sit:d.sit ? 1 : 0, bot:d.bot ? 1 : 0};
     p.tag = document.createElement('div');
-    p.tag.className = 'nm3' + (isMe ? ' me' : '');
-    p.tag.textContent = isMe ? '나 · ' + p.name : p.name;
+    p.tag.className = 'nm3' + (isMe ? ' me' : '') + (p.bot ? ' bot' : '');
+    p.tag.textContent = isMe ? '나 · ' + p.name : (p.bot ? '온기봇 · AI' : p.name);
     scene.appendChild(p.tag);
     if(isMe){ camT.x = w.x; camT.z = w.z; }
     peers[d.id] = p;
@@ -794,7 +837,7 @@ body.plaza nav{max-width:none}
   }
   function showSay(id, text){
     var p = peers[id]; if(!p) return;
-    bubble(p, text);
+    bubble(p, text, p.bot ? 5200 : 3200);
     var mine = (id === meId);
     addFeed(mine ? p.name + ' (나)' : p.name, text, mine);
     if(mine) statusEl.textContent = '“' + text + '” 라고 전했어요.';
@@ -807,7 +850,7 @@ body.plaza nav{max-width:none}
     $('#modeNote').textContent = live ? '(실시간)' : (m === 'demo' ? '(시연 예시)' : '');
     $('#feedHint').textContent = live ? '같은 마당에 들어온 분들의 인사가 실시간으로 보여요.' : '다른 분들의 인사와 대답은 시연을 위한 예시예요.';
   }
-  var HOW = '바닥을 눌러 걸어가요. 화면을 쓸면 돌아가고, 두 손가락으로 벌리면 커져요.';
+  var HOW = '바닥을 눌러 걸어가요. 화면을 쓸면 돌아가고, 두 손가락으로 벌리면 커져요. 로봇(온기봇)에게 가까이 가 보세요.';
 
   /* 인사와 이야기 버튼 */
   PHRASES.forEach(function(text, i){
@@ -827,7 +870,7 @@ body.plaza nav{max-width:none}
       lastSay = now;
       showSay(meId, PHRASES[i]);
       setTimeout(function(){
-        var ids = Object.keys(peers).filter(function(k){ return k !== meId; });
+        var ids = Object.keys(peers).filter(function(k){ return k !== meId && !peers[k].bot; });
         if(ids.length) showSay(pick(ids), REPLIES[i]);
       }, 1400);
     }
@@ -843,6 +886,12 @@ body.plaza nav{max-width:none}
     if(!rc.ray.intersectPlane(plane, hit)) return;
     var me = peers[meId];
     if(me && me.sit) standUp();
+    var bt = botPeer();
+    if(bt && me && (bt.x - hit.x) * (bt.x - hit.x) + (bt.z - hit.z) * (bt.z - hit.z) < 4){
+      if(Math.hypot(me.x - bt.x, me.z - bt.z) < 6){ if(sheetMode) closeSheet(); openHelp(); return; }
+      helpCooldown = 0; pendingSit = false;
+      var o2 = limitCircle({x:bt.x, z:bt.z + 2.4}); walkTo = o2; marker.position.set(o2.x, 0.05, o2.z); marker.visible = true; return;
+    }
     var o = limitCircle({x:hit.x, z:hit.z}); pendingSit = false;
     for(var si = 0; si < SEATS.length; si++){
       var sx = SEATS[si].x - hit.x, sz = SEATS[si].z - hit.z;
@@ -912,11 +961,100 @@ body.plaza nav{max-width:none}
   function paintDock(){ Object.keys(MODES).forEach(function(k){ $('#dock-' + k).setAttribute('aria-pressed', String(k === sheetMode)); }); }
   function openSheet(m){
     if(sheetMode === m){ closeSheet(); return; }
+    if(sheetMode === 'help' && m !== 'help') helpEnd();
     sheetMode = m; sheet.hidden = false;
-    Object.keys(MODES).forEach(function(k){ $('#sec-' + k).hidden = (k !== m); });
-    $('#sheetTitle').textContent = MODES[m]; paintDock();
+    ['greet', 'talk', 'feed', 'help'].forEach(function(k){ $('#sec-' + k).hidden = (k !== m); });
+    $('#sheetTitle').textContent = MODES[m] || '온기봇에게 물어보기'; paintDock();
   }
-  function closeSheet(){ sheetMode = ''; sheet.hidden = true; paintDock(); }
+  function closeSheet(){ if(sheetMode === 'help') helpEnd(); sheetMode = ''; sheet.hidden = true; paintDock(); }
+
+  /* ---------- 온기봇에게 물어보기 (정해진 안내만, 실제 예약이나 진료는 하지 않아요) ---------- */
+  var helpCooldown = 0;
+  var HELP = {
+    root:{q:'안녕하세요! 무엇을 도와드릴까요?', ai:'저는 AI 안내 로봇이에요. 실제 예약이나 진료는 못 하고, 방법을 알려 드려요.',
+      go:[['병원 예약', 'hospital'], ['핸드폰 설정', 'phone'], ['키오스크 사용법', 'kiosk']]},
+    hospital:{q:'병원 예약, 어떻게 하고 싶으세요?', back:'root', go:[['전화로 예약하기', 'h_call'], ['앱·인터넷으로 예약하기', 'h_app'], ['도와줄 사람 연결하기', 'h_link']]},
+    h_call:{q:'전화로 예약하는 방법이에요', back:'hospital', steps:[
+      '가려는 병원의 대표 전화번호를 찾아요. 휴대폰에서 병원 이름을 검색하면 나와요.',
+      '전화해서 "진료 예약하고 싶어요"라고 말해요.',
+      '이름, 생년월일, 연락처를 알려 주고 원하는 날짜와 시간을 말해요.',
+      '어디가 불편한지 간단히 말하면 알맞은 진료과를 안내해 줘요.',
+      '갈 때는 신분증과 건강보험증(또는 모바일 신분증)을 챙겨 가요.'],
+      note:'병원마다 방법이 조금 달라요. 예약한 날짜와 시간은 종이나 휴대폰에 적어 두세요.'},
+    h_app:{q:'앱·인터넷으로 예약하는 방법이에요', back:'hospital', steps:[
+      '가려는 병원이 앱이나 누리집(홈페이지)에서 예약을 받는지 먼저 확인해요.',
+      '앱이나 누리집에서 \'진료 예약\'(또는 \'예약\')을 눌러요.',
+      '처음이면 휴대폰 번호로 본인 확인을 해요. 문자로 온 인증번호를 입력해요.',
+      '진료과, 날짜, 시간을 고르고 \'예약 완료\'를 눌러요.'],
+      note:'어려우면 가족이나 복지사 선생님께 옆에서 함께 해 달라고 부탁해도 좋아요. 인증번호는 다른 사람에게 알려 주지 마세요.'},
+    h_link:{q:'도와줄 사람과 연결해 드릴게요', back:'hospital',
+      text:'상담 탭에서 의사 선생님·복지사 선생님(AI 안내 도우미)이 예약 준비를 도와드려요. 이 시연에서는 안내만 하고, 실제 진료나 상담은 아니에요.',
+      action:['상담 탭으로 가기', '#consult']},
+    phone:{q:'핸드폰에서 무엇을 바꾸고 싶으세요?', back:'root', go:[['글자 크게 하기', 'p_font'], ['소리 크게 하기', 'p_sound'], ['와이파이 연결하기', 'p_wifi']]},
+    p_font:{q:'글자를 크게 하는 방법이에요', back:'phone', steps:[
+      '\'설정\' 앱(톱니바퀴 모양)을 열어요.',
+      '갤럭시: \'디스플레이\' → \'글꼴 크기 및 스타일\'. 아이폰: \'디스플레이 및 밝기\' → \'텍스트 크기\'.',
+      '막대를 오른쪽으로 밀면 글자가 커져요.',
+      '위쪽 예시 글자로 크기를 확인하고 뒤로 가기를 눌러요.'],
+      note:'기종과 버전에 따라 메뉴 이름이 조금 다를 수 있어요. 설정 앱 위쪽 검색창에 "글자"를 입력해도 찾을 수 있어요.'},
+    p_sound:{q:'소리를 크게 하는 방법이에요', back:'phone', steps:[
+      '폰 옆쪽의 볼륨 버튼(+)을 눌러요. 화면에 소리 크기 막대가 나와요.',
+      '벨소리는 \'설정\' → \'소리\'(아이폰은 \'소리 및 햅틱\')에서 바꿔요.',
+      '벨소리 막대를 오른쪽으로 밀면 커져요.',
+      '아이폰은 옆쪽 작은 스위치가 주황색으로 보이면 무음이라 소리가 안 나요. 스위치를 올려 풀어 주세요.'],
+      note:'아이폰 모델에 따라 무음 스위치 대신 다른 버튼이 있을 수 있어요.'},
+    p_wifi:{q:'와이파이에 연결하는 방법이에요', back:'phone', steps:[
+      '\'설정\'을 열고 \'Wi-Fi\'를 눌러요. (갤럭시는 \'연결\' → \'Wi-Fi\')',
+      'Wi-Fi 스위치를 켜요.',
+      '목록에서 우리 집(또는 가게) 와이파이 이름을 눌러요.',
+      '비밀번호를 입력하고 \'연결\'을 눌러요.'],
+      note:'비밀번호는 인터넷 공유기 뒷면 스티커에 적혀 있는 경우가 많아요. 연결되면 이름 옆에 \'연결됨\' 표시가 나와요.'},
+    kiosk:{q:'어떤 키오스크를 쓰시려고 해요?', back:'root', go:[['식당·카페 주문', 'k_food'], ['병원 접수기', 'k_hosp'], ['무인 민원 발급기', 'k_civil']]},
+    k_food:{q:'식당·카페에서 주문하는 방법이에요', back:'kiosk', steps:[
+      '화면을 한 번 눌러 시작해요. \'쉬운 주문\'이나 \'큰 글씨\' 버튼이 있으면 눌러요.',
+      '먹을 메뉴를 눌러 담아요. 잘못 담았으면 \'삭제\'를 누르면 돼요.',
+      '\'주문하기\'를 누르고 \'매장\'인지 \'포장\'인지 골라요.',
+      '결제 방법을 고르고, 안내에 따라 카드를 꽂거나 대요.',
+      '영수증과 번호표를 챙기고, 번호를 부르면 받으러 가요.'],
+      note:'모르겠을 때는 직원에게 "도와주세요"라고 말해도 괜찮아요. 천천히 하셔도 돼요.'},
+    k_hosp:{q:'병원 접수기를 쓰는 방법이에요', back:'kiosk', steps:[
+      '화면에서 \'접수\'를 눌러요.',
+      '안내에 따라 신분증이나 건강보험증을 기계에 대거나 넣어요.',
+      '진료받을 과를 고르고 \'확인\'을 눌러요.',
+      '접수증이나 번호표를 받고 대기실에서 순서를 기다려요.'],
+      note:'주민등록번호 같은 개인정보를 입력할 때는 손으로 화면을 가려 주세요. 병원마다 기계가 달라서, 막히면 원무과 직원에게 물어보세요.'},
+    k_civil:{q:'무인 민원 발급기를 쓰는 방법이에요', back:'kiosk', steps:[
+      '신분증(주민등록증)을 안내 위치에 넣어요.',
+      '화면 안내대로 손가락을 올려 지문으로 본인 확인을 해요.',
+      '필요한 서류(예: 주민등록등본)를 고르고 수수료를 결제해요.',
+      '서류가 나오면 꼭 챙기고, 신분증도 잊지 말고 가져가요.'],
+      note:'기계마다 화면이 조금 달라요. 막히면 주민센터 직원에게 물어보세요.'}
+  };
+  function el(tag, cls, txt){ var e = document.createElement(tag); if(cls) e.className = cls; if(txt) e.textContent = txt; return e; }
+  function helpBtn(label, cls, fn){ var b = el('button', 'btn ' + cls, label); b.type = 'button'; b.addEventListener('click', fn); return b; }
+  function helpShow(key){
+    var n = HELP[key], list = $('#helpList');
+    $('#helpQ').textContent = n.q; list.innerHTML = '';
+    if(n.text) list.appendChild(el('p', '', n.text));
+    if(n.steps){ var ol = el('ol', 'help-steps'); n.steps.forEach(function(t){ ol.appendChild(el('li', '', t)); }); list.appendChild(ol); }
+    if(n.note) list.appendChild(el('div', 'help-note', n.note));
+    (n.go || []).forEach(function(g){ list.appendChild(helpBtn(g[0], 'btn-soft', function(){ helpShow(g[1]); })); });
+    if(n.action) list.appendChild(helpBtn(n.action[0], 'btn-primary', function(){ closeSheet(); location.hash = n.action[1]; }));
+    if(n.ai) list.appendChild(el('p', 'help-ai', n.ai));
+    var row = el('div', 'help-row');
+    if(n.back) row.appendChild(helpBtn('뒤로', 'btn-soft', function(){ helpShow(n.back); }));
+    if(n.steps || n.text) row.appendChild(helpBtn('다른 것도 물어볼게요', 'btn-soft', function(){ helpShow('root'); }));
+    row.appendChild(helpBtn(key === 'root' ? '괜찮아요' : '고마워요', 'btn-soft', function(){ var b = botPeer(); closeSheet(); if(b && key !== 'root') bubble(b, '도움이 되었길 바라요', 3500); }));
+    list.appendChild(row);
+  }
+  function botPeer(){ var ks = Object.keys(peers); for(var i = 0; i < ks.length; i++){ if(peers[ks[i]].bot) return peers[ks[i]]; } return null; }
+  function sendTalk(v){ if(mode === 'live' && ws && ws.readyState === 1) ws.send(JSON.stringify({t:'talk', v:v})); }
+  function openHelp(){
+    if(sheetMode === 'help') return;
+    openSheet('help'); helpShow('root'); sendTalk(1);
+    var b = botPeer(); if(b) bubble(b, '무엇을 도와드릴까요?', 6000);
+  }
+  function helpEnd(){ sendTalk(0); helpCooldown = performance.now() + 60000; }
   Object.keys(MODES).forEach(function(k){ $('#dock-' + k).addEventListener('click', function(){ openSheet(k); }); });
   $('#sheetX').addEventListener('click', closeSheet);
   window.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeSheet(); });
@@ -1060,8 +1198,9 @@ body.plaza nav{max-width:none}
       if(!p.isMe){
         var ddx = p.tx - p.x, ddz = p.tz - p.z, dd = Math.sqrt(ddx*ddx + ddz*ddz);
         if(dd > 0.01){
-          var s = 1 - Math.exp(-dt * p.k);
+          var s = p.bot ? Math.min(dd, Math.max(2.2, dd * 3) * dt) / dd : 1 - Math.exp(-dt * p.k);
           p.x += ddx * s; p.z += ddz * s;
+          var lo = limitCircle({x:p.x, z:p.z}); p.x = lo.x; p.z = lo.z;
           if(dd > 0.05) faceTo(p, ddx, ddz);
         }
         p.moving = dd > 0.15;
@@ -1069,12 +1208,26 @@ body.plaza nav{max-width:none}
       if(p.moving) p.phase += dt * 11;
       if(p.sit && !p.moving){ var fs2 = seatAt(p.x, p.z); faceTo(p, (fs2 ? fs2.fx : POND.x) - p.x, (fs2 ? fs2.fz : POND.z) - p.z); }
       p.g.position.set(p.x, p.sit && !p.moving ? SITY : (p.moving ? Math.abs(Math.sin(p.phase)) * 0.1 : 0), p.z);
+      if(p.bot){
+        p.g.position.y = 0.14 + Math.sin(now / 420 + p.phase) * 0.05;
+        var ud = p.g.userData;
+        ud.bulb.scale.setScalar(1 + Math.sin(now / 300) * 0.25);
+        ud.armR.rotation.z = p.showing ? 2.3 + Math.sin(now / 110) * 0.4 : (p.moving ? 0.35 + Math.sin(now / 180) * 0.2 : 0.25);
+        ud.armL.rotation.z = p.moving ? -0.35 - Math.sin(now / 180) * 0.2 : -0.25;
+      }
     });
     if(marker.visible) marker.scale.setScalar(1 + Math.sin(now / 160) * 0.12);
     ripples.forEach(function(r){
       r.t += dt; var u = (r.t % 3.2) / 3.2;
       r.m.scale.setScalar(0.3 + u * 2.2); r.m.material.opacity = 0.5 * (1 - u);
     });
+    if(me && onPlaza()){
+      var bt3 = botPeer();
+      if(bt3){
+        if(!sheetMode && now > helpCooldown && Math.sqrt((me.x - bt3.x) * (me.x - bt3.x) + (me.z - bt3.z) * (me.z - bt3.z)) < 3.2) openHelp();
+        if(sheetMode === 'help') faceTo(bt3, me.x - bt3.x, me.z - bt3.z);
+      }
+    }
     clouds.forEach(function(c){ c.position.x += dt * 0.9; if(c.position.x > 100) c.position.x = -100; });
     Water.set(!!(me && me.sit && waterWanted && onPlaza() && Math.hypot(me.x - POND.x, me.z - POND.z) < 8));
     if(!onPlaza()) return;
@@ -1086,7 +1239,8 @@ body.plaza nav{max-width:none}
     }
     var cp = Math.cos(pitch);
     camera.position.set(camT.x + Math.sin(yaw) * cp * camDist, 1.2 + Math.sin(pitch) * camDist, camT.z + Math.cos(yaw) * cp * camDist);
-    camera.lookAt(camT.x, 3.2, camT.z);
+    lookY += ((sheetMode ? -1.2 : 3.2) - lookY) * (1 - Math.exp(-dt * 4));
+    camera.lookAt(camT.x, lookY, camT.z);
     renderer.render(world, camera);
     for(k in peers){
       var q = peers[k];
@@ -1111,8 +1265,9 @@ body.plaza nav{max-width:none}
 
   /* 시험과 점검용: 지금 마당에 있는 사람의 위치를 읽기만 해요 */
   window.__onggiPeers = function(){
-    return Object.keys(peers).map(function(id){ var p = peers[id]; return {id:id, me:p.isMe, x:+p.x.toFixed(2), z:+p.z.toFixed(2), name:p.name, sit:p.sit, y:+p.g.position.y.toFixed(2)}; });
+    return Object.keys(peers).map(function(id){ var p = peers[id]; return {id:id, me:p.isMe, x:+p.x.toFixed(2), z:+p.z.toFixed(2), name:p.name, sit:p.sit, bot:p.bot, y:+p.g.position.y.toFixed(2)}; });
   };
+  window.__onggiHelp = function(){ openHelp(); };
   window.__onggiCam = function(){ return {yaw:+yaw.toFixed(3), pitch:+pitch.toFixed(3), dist:+camDist.toFixed(2)}; };
 
   /* ---------- 시연 모드: 서버가 없을 때 가상의 이웃과 함께 보여줘요 ---------- */
@@ -1126,6 +1281,20 @@ body.plaza nav{max-width:none}
     me.k = 9;
     $('#myname').textContent = me.name;
     names.forEach(function(n, i){ addPeer({id:'n'+i, name:n, look:i+1, x:pos[i][0], y:pos[i][1]}, false); });
+    addPeer({id:'botdemo', name:'온기봇', bot:1, look:0, x:50, y:28}, false);
+    demoTimers.push(setInterval(function(){
+      if(document.hidden || !peers.botdemo || sheetMode === 'help') return;
+      var b = peers.botdemo, wps = [[50,50],[50,16],[72,50],[41.5,51],[33,33],[67,33],[50,75],[58,22]];
+      if(Math.random() < 0.45 && peers[meId]){
+        var n = toNorm(peers[meId].x, peers[meId].z); setTarget(b, n.x + 5, n.y - 4);
+        setTimeout(function(){ if(peers.botdemo) showSay('botdemo', BOT_LINES[0]); }, 4200);
+      } else { var w = wps[Math.floor(Math.random() * wps.length)]; setTarget(b, w[0], w[1]); }
+    }, 8500));
+    demoTimers.push(setInterval(function(){
+      if(document.hidden || !peers.botdemo || sheetMode === 'help') return;
+      showSay('botdemo', BOT_LINES[1 + Math.floor(Math.random() * (BOT_LINES.length - 1))]);
+    }, 16000));
+    setTimeout(function(){ if(peers.botdemo) showSay('botdemo', BOT_LINES[0]); }, 3500);
     [['n0', 0], ['n3', 3], ['n4', 6]].forEach(function(o){
       var q = peers[o[0]], st = SEATS[o[1]]; if(!q || !st) return;
       q.x = q.tx = st.x; q.z = q.tz = st.z; q.sit = 1;
@@ -1137,14 +1306,14 @@ body.plaza nav{max-width:none}
     demoTimers.push(setInterval(function(){
       if(document.hidden) return;
       Object.keys(peers).forEach(function(id){
-        if(id === meId || peers[id].sit || Math.random() < 0.4) return;
+        if(id === meId || peers[id].bot || peers[id].sit || Math.random() < 0.4) return;
         var p = peers[id], n = toNorm(p.tx, p.tz);
         setTarget(p, clamp(n.x + (Math.random()*24 - 12), 14, 86), clamp(n.y + (Math.random()*24 - 12), 14, 86));
       });
     }, 2600));
     demoTimers.push(setInterval(function(){
       if(document.hidden) return;
-      var ids = Object.keys(peers).filter(function(k){ return k !== meId; });
+      var ids = Object.keys(peers).filter(function(k){ return k !== meId && !peers[k].bot; });
       if(ids.length) bubble(peers[pick(ids)], pick(PHRASES.slice(0, GREET_N)), 2600);
     }, 6500));
     setTimeout(function(){ if(peers.n0) bubble(peers.n0, '안녕하세요', 2600); }, 700);
@@ -1174,7 +1343,9 @@ body.plaza nav{max-width:none}
       removePeer(m.id);
     } else if(m.t === 'say'){
       var i = Number(m.i);
+      var bp = peers[m.id], bi = i - PHRASES.length;
       if(Number.isInteger(i) && i >= 0 && i < PHRASES.length) showSay(m.id, PHRASES[i]);
+      else if(bp && bp.bot && Number.isInteger(bi) && bi >= 0 && bi < BOT_LINES.length) showSay(m.id, BOT_LINES[bi]);
     } else if(m.t === 'full'){
       setMode('full');
       statusEl.textContent = '지금은 마당이 가득 찼어요. 잠시 후 다시 들어와 주세요.';
