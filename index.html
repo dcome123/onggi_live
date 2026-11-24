@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>온기 마을회관</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* 한 줄 설계: 모바일 한 칸 앱. 위에 제목과 글자 크기, 아래에 4칸 탭. 큰 글씨와 높은 대비가 기준 */
+  --bg:#F2F7F4;
+  --surface:#FFFFFF;
+  --ink:#16302B;
+  --muted:#47625D;
+  --primary:#1B6B5F;
+  --primary-soft:#DCEFE9;
+  --accent:#F2A93B;
+  --accent-ink:#3A2600;
+  --line:#C9DAD3;
+  --alert:#A8261D;
+  --alert-soft:#FCE9E6;
+  --font:'Noto Sans KR','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+  color-scheme:light;
+}
+html{font-size:20px;-webkit-text-size-adjust:100%}
+html.fs-s{font-size:18px}
+html.fs-l{font-size:23px}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 1rem/1.6 var(--font);min-height:100dvh}
+body{word-break:keep-all;overflow-wrap:break-word}
+button{font:inherit;color:inherit;cursor:pointer}
+h1,h2,h3,p{margin:0}
+h2{font-size:1.35rem;font-weight:900;line-height:1.35;text-wrap:balance}
+h3{font-size:1.05rem;font-weight:700;line-height:1.4}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+.app{max-width:32rem;margin:0 auto}
+header{position:sticky;top:0;z-index:5;background:var(--bg);padding:max(.6rem,env(safe-area-inset-top)) 1rem .6rem;display:flex;align-items:center;justify-content:space-between;gap:.5rem;border-bottom:1px solid var(--line)}
+.brand{display:flex;flex-direction:column;line-height:1.2}
+.brand b{font-size:1.15rem;font-weight:900;color:var(--primary)}
+.brand span{font-size:.75rem;color:var(--muted)}
+.fs{display:flex;gap:.3rem}
+.fs button{width:2.5rem;height:2.5rem;border-radius:.7rem;border:2px solid var(--line);background:var(--surface);font-weight:700;line-height:1}
+.fs button[aria-pressed="true"]{background:var(--primary);border-color:var(--primary);color:#fff}
+.fs button:nth-child(1){font-size:.8rem}
+.fs button:nth-child(2){font-size:1rem}
+.fs button:nth-child(3){font-size:1.25rem}
+
+main{padding:1rem 1rem calc(6.5rem + env(safe-area-inset-bottom))}
+.panel{display:flex;flex-direction:column;gap:1rem}
+.panel[hidden]{display:none}
+.lead{color:var(--muted);font-size:.95rem}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:1.1rem;padding:1rem;display:flex;flex-direction:column;gap:.7rem}
+.notice{background:var(--primary-soft);border-radius:1rem;padding:.8rem 1rem;font-size:.92rem}
+.notice strong{font-weight:700}
+.alertbox{background:var(--alert-soft);border:1px solid #E7B9B3;border-radius:1rem;padding:.9rem 1rem;display:flex;flex-direction:column;gap:.4rem}
+.alertbox h3{color:var(--alert)}
+.alertbox ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.2rem;font-size:.95rem}
+.alertbox b{font-size:1.1rem;font-variant-numeric:tabular-nums}
+
+.btn{min-height:3rem;border-radius:.9rem;border:2px solid transparent;padding:.55rem 1rem;font-weight:700;text-align:center}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-primary:disabled{background:#9DB8B1;cursor:not-allowed}
+.btn-soft{background:var(--primary-soft);color:var(--primary);border-color:#BBDCD2}
+.btn-accent{background:var(--accent);color:var(--accent-ink)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
+.chips{display:flex;flex-wrap:wrap;gap:.5rem}
+.chip{min-height:2.8rem;border-radius:999px;border:2px solid var(--line);background:var(--surface);padding:.35rem 1rem;font-weight:500}
+.chip[aria-pressed="true"]{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:700}
+
+/* 마당 */
+.stat{display:flex;justify-content:space-between;align-items:center;font-size:.9rem;color:var(--muted)}
+.stat b{color:var(--ink)}
+.scene{position:relative;width:100%;aspect-ratio:360/280;border-radius:1.1rem;overflow:hidden;border:1px solid var(--line);background:#CFE8EE}
+.scene>svg.bg{position:absolute;inset:0;width:100%;height:100%}
+.av{position:absolute;transform:translate(-50%,-100%);width:2.4rem}
+@media (max-height:700px){.scene{aspect-ratio:360/235}}
+.av.other{transition:left var(--mv,.12s) linear,top var(--mv,.12s) linear}
+.scene{touch-action:manipulation;-webkit-user-select:none;user-select:none;cursor:pointer}
+.dpad{display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem}
+.dpad button{min-height:3.4rem;font-size:1.6rem;line-height:1;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.dpad button:active{background:var(--primary);color:#fff}
+.feed li.empty{background:transparent;border-style:dashed;color:var(--muted);font-size:.92rem}
+.av svg{display:block;width:100%;height:auto}
+.av .me-tag{position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:-.15rem;background:var(--accent);color:var(--accent-ink);font-size:.7rem;font-weight:700;border-radius:999px;padding:0 .45rem;line-height:1.3;white-space:nowrap}
+.bubble{position:absolute;bottom:calc(100% + .1rem);left:50%;transform:translateX(-50%);background:#fff;border:2px solid var(--primary);border-radius:.8rem;padding:.15rem .6rem;font-size:.85rem;font-weight:700;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .2s;z-index:2}
+.bubble.show{opacity:1}
+.bubble.l{left:0;transform:none}
+.bubble.r{left:auto;right:0;transform:none}
+.status{min-height:1.6rem;font-size:.95rem;color:var(--primary);font-weight:700}
+.feed{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.5rem}
+.feed li{border-radius:.9rem;padding:.55rem .8rem;background:#F4F8F6;border:1px solid var(--line)}
+.feed li.mine{background:var(--primary-soft);border-color:#BBDCD2}
+.feed small{display:block;color:var(--muted);font-size:.78rem;font-weight:700}
+
+/* 명상 */
+.orbwrap{display:flex;flex-direction:column;align-items:center;gap:.8rem;padding:.5rem 0}
+.orbbox{width:14rem;height:14rem;display:grid;place-items:center}
+.orb{width:9rem;height:9rem;border-radius:50%;background:radial-gradient(circle at 35% 30%,#8FD0C2,#1B6B5F);display:grid;place-items:center;color:#fff;font-size:2.4rem;font-weight:900;font-variant-numeric:tabular-nums;transform:scale(1);transition:transform 4s ease-in-out;box-shadow:0 0 0 .8rem rgba(27,107,95,.12)}
+.guide{font-size:1.2rem;font-weight:700;text-align:center;min-height:2.2rem}
+.remain{font-size:.95rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.durations{display:flex;gap:.5rem}
+@media (prefers-reduced-motion:reduce){.orb{transition:none!important}.bubble{transition:none}}
+
+/* 상담 */
+.who{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
+.who-card{border:2px solid var(--line);background:var(--surface);border-radius:1.1rem;padding:.8rem .5rem;display:flex;flex-direction:column;align-items:center;gap:.25rem;text-align:center}
+.who-card svg{width:3.4rem;height:auto}
+.who-card b{font-size:1.05rem}
+.who-card span{font-size:.8rem;color:var(--muted);line-height:1.35}
+.who-card[aria-pressed="true"]{border-color:var(--primary);background:var(--primary-soft)}
+.badge{display:inline-block;font-size:.72rem;font-weight:700;background:var(--accent);color:var(--accent-ink);border-radius:999px;padding:0 .5rem}
+.speech{position:relative;background:var(--surface);border:2px solid var(--primary);border-radius:1.1rem;padding:.8rem 1rem;font-size:.97rem}
+.speech::before{content:"";position:absolute;top:-.55rem;left:2rem;width:.9rem;height:.9rem;background:var(--surface);border-left:2px solid var(--primary);border-top:2px solid var(--primary);transform:rotate(45deg)}
+.step{display:flex;flex-direction:column;gap:.5rem}
+.hint{font-size:.85rem;color:var(--muted)}
+.summary{display:grid;grid-template-columns:auto 1fr;gap:.3rem .8rem;font-size:.97rem}
+.summary dt{color:var(--muted)}
+.summary dd{margin:0;font-weight:700}
+
+/* 소개 */
+.roadmap{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.7rem}
+.roadmap li{display:grid;grid-template-columns:2.2rem 1fr;gap:.7rem}
+.roadmap .n{width:2.2rem;height:2.2rem;border-radius:50%;background:var(--line);display:grid;place-items:center;font-weight:900}
+.roadmap li.now .n{background:var(--primary);color:#fff}
+.roadmap p{font-size:.92rem;color:var(--muted)}
+.roadmap h3 .badge{margin-left:.3rem}
+.two{display:grid;gap:.6rem}
+.cmp{border:1px solid var(--line);border-radius:.9rem;overflow:hidden}
+.cmp div{padding:.6rem .8rem;font-size:.92rem}
+.cmp .a{background:#F4F8F6}
+.cmp .b{background:var(--primary-soft)}
+.cmp small{display:block;font-weight:700;color:var(--muted);font-size:.75rem}
+.list{margin:0;padding-left:1.2rem;display:flex;flex-direction:column;gap:.3rem;font-size:.95rem}
+.fine{font-size:.8rem;color:var(--muted)}
+
+nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:32rem;background:var(--surface);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(4,1fr);padding-bottom:env(safe-area-inset-bottom);z-index:6}
+nav a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.1rem;min-height:3.8rem;color:var(--muted);text-decoration:none;font-size:.82rem;font-weight:700;border-top:4px solid transparent}
+nav a svg{width:1.5rem;height:1.5rem;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+nav a[aria-current="page"]{color:var(--primary);border-top-color:var(--primary);background:var(--primary-soft)}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div class="brand"><b>온기 마을회관</b><span id="brandSub">연결 중</span></div>
+  <div class="fs" role="group" aria-label="글자 크기">
+    <button type="button" id="fs-s" aria-pressed="false" aria-label="글자 작게">가</button>
+    <button type="button" id="fs-m" aria-pressed="true" aria-label="글자 기본">가</button>
+    <button type="button" id="fs-l" aria-pressed="false" aria-label="글자 크게">가</button>
+  </div>
+</header>
+
+<main>
+<!-- 마당 -->
+<section class="panel" id="panel-plaza">
+  <div class="stat"><span>마당에 계신 분 <b id="count">0</b>명 <span id="modeNote"></span></span><span>내 이름 <b id="myname">-</b></span></div>
+  <div class="scene" id="scene" aria-label="마을 마당 그림">
+    <svg class="bg" viewBox="0 0 360 280" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <rect width="360" height="130" fill="#CFE8EE"/>
+      <circle cx="300" cy="34" r="16" fill="#FBE7A6"/>
+      <ellipse cx="90" cy="130" rx="150" ry="40" fill="#B7D9AC"/>
+      <ellipse cx="290" cy="136" rx="140" ry="36" fill="#A5D0A0"/>
+      <rect y="125" width="360" height="155" fill="#C4E2B4"/>
+      <ellipse cx="180" cy="215" rx="150" ry="52" fill="#EADDB9"/>
+      <!-- 정자 -->
+      <rect x="262" y="84" width="6" height="42" fill="#7A4B3A"/>
+      <rect x="322" y="84" width="6" height="42" fill="#7A4B3A"/>
+      <rect x="256" y="122" width="78" height="8" fill="#9A6A52"/>
+      <path d="M246 88 Q295 40 344 88 Q295 78 246 88Z" fill="#5C3A2E"/>
+      <!-- 나무 -->
+      <rect x="40" y="82" width="12" height="48" rx="3" fill="#7A4B3A"/>
+      <circle cx="46" cy="70" r="26" fill="#5E9E6E"/>
+      <circle cx="28" cy="82" r="17" fill="#6DAF7B"/>
+      <circle cx="64" cy="82" r="17" fill="#6DAF7B"/>
+      <!-- 꽃 -->
+      <circle cx="120" cy="160" r="3" fill="#F2A93B"/><circle cx="132" cy="166" r="3" fill="#E57B7B"/>
+      <circle cx="238" cy="158" r="3" fill="#E57B7B"/><circle cx="226" cy="164" r="3" fill="#F2A93B"/>
+    </svg>
+  </div>
+  <div class="dpad" id="dpad" role="group" aria-label="움직이기 버튼">
+    <button type="button" class="btn btn-soft" data-dir="l" aria-label="왼쪽으로">←</button>
+    <button type="button" class="btn btn-soft" data-dir="u" aria-label="위로">↑</button>
+    <button type="button" class="btn btn-soft" data-dir="d" aria-label="아래로">↓</button>
+    <button type="button" class="btn btn-soft" data-dir="r" aria-label="오른쪽으로">→</button>
+  </div>
+  <div class="status" id="status" aria-live="polite">아래 버튼을 눌러 인사해 보세요.</div>
+
+  <div class="card">
+    <h3>인사하기</h3>
+    <div class="grid2" id="greet"></div>
+  </div>
+  <div class="card">
+    <h3>이야기 나누기</h3>
+    <p class="hint">정해진 문장 중에서 골라 말해요. 직접 쓰는 대화는 안전 장치를 갖춘 뒤 2단계에서 열어요.</p>
+    <div class="chips" id="talk"></div>
+  </div>
+  <div class="card">
+    <h3>오늘의 이야기</h3>
+    <ul class="feed" id="feed" role="log" aria-live="polite"></ul>
+    <p class="hint" id="feedHint">다른 분들의 인사와 대답은 시연을 위한 예시예요.</p>
+  </div>
+</section>
+
+<!-- 명상 -->
+<section class="panel" id="panel-breath" hidden>
+  <div>
+    <h2>함께 숨 쉬는 시간</h2>
+    <p class="lead">화면의 동그라미에 맞춰 천천히 숨을 쉬어요. 말은 하지 않아도 돼요.</p>
+  </div>
+  <div class="card">
+    <div class="orbwrap">
+      <div class="orbbox"><div class="orb" id="orb" aria-hidden="true">4</div></div>
+      <div class="guide" id="guide" aria-live="polite">의자에 편하게 앉아 어깨 힘을 빼 주세요</div>
+      <div class="remain" id="remain">함께하는 분 8명 (시연 예시)</div>
+    </div>
+    <div class="durations" id="durs">
+      <button type="button" class="chip" data-min="1" aria-pressed="false">1분</button>
+      <button type="button" class="chip" data-min="3" aria-pressed="true">3분</button>
+    </div>
+    <button type="button" class="btn btn-primary" id="breathBtn">시작하기</button>
+    <p class="hint">들이쉬기 4초, 내쉬기 6초를 반복해요. 몸이 불편하면 언제든 그만하셔도 돼요.</p>
+  </div>
+</section>
+
+<!-- 상담 -->
+<section class="panel" id="panel-consult" hidden>
+  <div>
+    <h2>상담 안내와 예약</h2>
+    <p class="lead">도움이 필요한 분야를 고르면 예약을 도와드려요.</p>
+  </div>
+  <div class="notice"><strong>안내 캐릭터는 AI예요.</strong> 진단, 처방, 복지 자격 판단은 하지 않고 상담 예약과 알맞은 기관 안내만 도와요. 상담은 협력 기관의 실제 의료진과 사회복지사가 맡는 것을 목표로 해요(협의 전).</div>
+
+  <div class="who" id="who"></div>
+
+  <div id="flow" hidden class="panel">
+    <div class="speech" id="speech"></div>
+    <div class="step"><h3>1. 어떤 도움이 필요하세요?</h3><div class="chips" id="c-topics"></div></div>
+    <div class="step"><h3>2. 날짜를 골라 주세요</h3><div class="chips" id="c-days"></div></div>
+    <div class="step"><h3>3. 시간을 골라 주세요</h3><div class="chips" id="c-times"></div></div>
+    <button type="button" class="btn btn-primary" id="submit" disabled>예약 신청하기</button>
+    <p class="hint" id="submitHint">세 가지를 모두 고르면 눌러져요.</p>
+  </div>
+
+  <div id="done" hidden class="card">
+    <h3>예약 신청 내용 (시연)</h3>
+    <dl class="summary" id="summary"></dl>
+    <p class="hint">실제 서비스에서는 이용 동의를 받은 뒤, 협력 기관 담당자가 확인하고 연락드리는 방식으로 이어져요.</p>
+    <button type="button" class="btn btn-soft" id="again">처음으로 돌아가기</button>
+  </div>
+
+  <div class="alertbox">
+    <h3>위급할 때는 이 화면 대신 바로 연락하세요</h3>
+    <ul>
+      <li><b>119</b> 응급 상황, 화재</li>
+      <li><b>129</b> 보건복지상담센터</li>
+      <li><b>1577-1389</b> 노인보호전문기관 (노인학대 신고)</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 소개 -->
+<section class="panel" id="panel-about" hidden>
+  <div>
+    <h2>이 서비스는 이렇게 만들어요</h2>
+    <p class="lead">어르신이 가입 없이 들어와 인사하고, 함께 쉬고, 필요하면 상담까지 이어지는 온라인 마을회관이에요.</p>
+  </div>
+
+  <div class="card">
+    <h3>AI가 하는 일과 하지 않는 일</h3>
+    <div class="two">
+      <div class="cmp">
+        <div class="b"><small>하는 일</small>인사 문구 안내, 명상 진행, 상담 예약 접수 안내, 알맞은 기관 연결</div>
+        <div class="a"><small>하지 않는 일</small>진단, 처방, 복지 자격 판단, 의사나 복지사를 대신하는 상담</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>안전 원칙</h3>
+    <ul class="list">
+      <li>안내 캐릭터에는 "AI 안내"라고 늘 표시해요.</li>
+      <li>1단계에서는 자유 입력 대신 정해진 문장만 써서 사기나 폭언을 막아요.</li>
+      <li>이름과 연락처 없이 입장하고, 상담 예약 때만 동의를 받고 최소한으로 받아요.</li>
+      <li>글자 크기 조절과 큰 버튼으로 누구나 쓸 수 있게 해요.</li>
+      <li>위급할 때 쓸 연락처를 상담 화면에 늘 보여요.</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3>단계별 계획</h3>
+    <ol class="roadmap">
+      <li class="now"><span class="n">1</span><div><h3>함께 있는 마당 <span class="badge">지금 시연</span></h3><p>입장, 인사, 선택형 이야기, 함께 명상, 상담 예약 안내까지 보여줘요.</p></div></li>
+      <li><span class="n">2</span><div><h3>소그룹 대화</h3><p>4~6명 방에서 글로 대화해요. 신고 버튼과 운영자 확인 체계를 먼저 갖춰요.</p></div></li>
+      <li><span class="n">3</span><div><h3>협력 기관 연계 상담</h3><p>기관과 협의한 뒤, 정해진 시간에 실제 전문가가 상담해요.</p></div></li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <h3>협력 구상 <span class="badge">협의 전</span></h3>
+    <ul class="list">
+      <li>보건소, 지역 의료기관: 건강 상담 시간에 의료진 배치</li>
+      <li>노인복지관, 사회복지기관: 복지 상담 시간에 사회복지사 배치</li>
+      <li>지자체, 경로당: 참여 안내와 사용법 교육</li>
+    </ul>
+    <div class="two">
+      <div class="cmp">
+        <div class="a"><small>지금 (시연)</small>캐릭터가 예약 화면만 보여줘요. 개인정보는 받지 않아요.</div>
+        <div class="b"><small>협력 후</small>기관 담당자가 예약을 확인하고, 실제 전문가가 상담해요. 개인정보는 기관 기준에 맞춰 최소한만 받아요.</div>
+      </div>
+    </div>
+  </div>
+  <p class="fine">이 화면은 과제 발표를 위한 시연이에요. 의료 진단이나 처방을 제공하지 않아요.</p>
+</section>
+</main>
+
+<nav aria-label="메뉴">
+  <a href="#plaza" data-tab="plaza"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11 12 3l9 8v10h-6v-6H9v6H3z"/></svg>마당</a>
+  <a href="#breath" data-tab="breath"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.5"/></svg>명상</a>
+  <a href="#consult" data-tab="consult"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg>상담</a>
+  <a href="#about" data-tab="about"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>소개</a>
+</nav>
+</div>
+
+<script>
+(function(){
+  var $ = function(s,r){return (r||document).querySelector(s)};
+  var pick = function(a){return a[Math.floor(Math.random()*a.length)]};
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---------- 글자 크기 ---------- */
+  var root = document.documentElement;
+  function setFs(k){
+    root.classList.remove('fs-s','fs-l');
+    if(k==='s') root.classList.add('fs-s');
+    if(k==='l') root.classList.add('fs-l');
+    ['s','m','l'].forEach(function(x){ $('#fs-'+x).setAttribute('aria-pressed', String(x===k)); });
+  }
+  ['s','m','l'].forEach(function(x){ $('#fs-'+x).addEventListener('click',function(){setFs(x)}); });
+
+  /* ---------- 아바타 그리기 ---------- */
+  function avatar(o){
+    var hat = o.hat ? '<path d="M12 15 Q24 3 36 15 Q24 11 12 15Z" fill="'+o.hat+'"/>' : '';
+    var extra = o.extra || '';
+    return '<svg viewBox="0 0 48 64" aria-hidden="true">'+
+      '<ellipse cx="24" cy="61" rx="13" ry="3" fill="rgba(0,0,0,.15)"/>'+
+      '<rect x="10" y="32" width="28" height="27" rx="12" fill="'+o.cloth+'"/>'+extra+
+      '<circle cx="24" cy="22" r="11" fill="'+(o.skin||'#F3CFA9')+'"/>'+
+      '<path d="M13 21 Q13 9 24 9 Q35 9 35 21 Q30 15 24 15 Q18 15 13 21Z" fill="'+o.hair+'"/>'+hat+
+      '<circle cx="20" cy="23" r="1.3" fill="#2b2b2b"/><circle cx="28" cy="23" r="1.3" fill="#2b2b2b"/>'+
+      '<path d="M20 27 Q24 30.5 28 27" fill="none" stroke="#7a4a3a" stroke-width="1.5" stroke-linecap="round"/></svg>';
+  }
+
+  /* ---------- 마당 (실시간 접속, 서버가 없으면 시연 모드로 자동 전환) ---------- */
+  var PHRASES = ['안녕하세요','건강하세요','식사하셨어요?','반가워요','오늘 날씨가 참 좋네요','산책 다녀오셨어요?','점심은 맛있게 드셨어요?','요즘 취미가 뭐예요?','내일 또 만나요'];
+  var GREET_N = 4; /* 앞의 4개는 인사 버튼, 나머지는 이야기 버튼 */
+  var REPLIES = ['안녕하세요, 반가워요','네, 고맙습니다','네, 맛있게 먹었어요','저도 반가워요','네, 정말 좋아요','저도 막 다녀왔어요','네, 든든하게 먹었어요','저는 화분 가꾸는 게 재미있어요','네, 내일 또 만나요'];
+  var LOOKS = [
+    {cloth:'#F2A93B', hair:'#4a4a4a', hat:'#1B6B5F'},
+    {cloth:'#8E6FB5', hair:'#d9d9d9'},
+    {cloth:'#4C8FD0', hair:'#9a9a9a', hat:'#7A4B3A'},
+    {cloth:'#D9604C', hair:'#e8e8e8'},
+    {cloth:'#5E9E6E', hair:'#555555'},
+    {cloth:'#C9A227', hair:'#bdbdbd', hat:'#5C3A2E'},
+    {cloth:'#6A7B8C', hair:'#3d3d3d'},
+    {cloth:'#D07FA6', hair:'#2f2f2f', hat:'#8E6FB5'}
+  ];
+  var XMIN = 6, XMAX = 94, YMIN = 54, YMAX = 93, SPEED = 26;
+  var scene = $('#scene'), statusEl = $('#status'), feed = $('#feed');
+  var peers = {}, meId = null, mode = 'connecting', ws = null, everLive = false, retry = 0;
+  var lastSay = 0, demoTimers = [];
+  function clamp(v,a,b){ return Math.min(b, Math.max(a, v)); }
+
+  function updateCount(){ $('#count').textContent = String(Object.keys(peers).length); }
+  function setPos(p,x,y){
+    p.x = x; p.y = y;
+    p.el.style.left = x+'%'; p.el.style.top = y+'%';
+    p.el.style.zIndex = String(Math.round(y));
+  }
+  function addPeer(d, isMe, moveTime){
+    if(peers[d.id]) return peers[d.id];
+    var el = document.createElement('div');
+    el.className = 'av' + (isMe ? '' : ' other');
+    var look = LOOKS[(Math.abs(parseInt(d.look,10)) || 0) % LOOKS.length];
+    el.innerHTML = avatar(look) + '<div class="bubble"></div>' + (isMe ? '<div class="me-tag">나</div>' : '');
+    if(moveTime) el.style.setProperty('--mv', moveTime);
+    scene.appendChild(el);
+    var p = {id:d.id, name:String(d.name), el:el, bub:el.querySelector('.bubble'), timer:null, x:0, y:0};
+    setPos(p, clamp(Number(d.x)||50, XMIN, XMAX), clamp(Number(d.y)||75, YMIN, YMAX));
+    peers[d.id] = p;
+    updateCount();
+    return p;
+  }
+  function removePeer(id){
+    var p = peers[id]; if(!p) return;
+    clearTimeout(p.timer);
+    if(p.el.parentNode) p.el.parentNode.removeChild(p.el);
+    delete peers[id];
+    updateCount();
+  }
+  function clearPeers(){ Object.keys(peers).forEach(removePeer); }
+
+  function bubble(p, text, ms){
+    p.bub.textContent = text;
+    p.bub.className = 'bubble' + (p.x < 24 ? ' l' : (p.x > 76 ? ' r' : '')) + ' show';
+    clearTimeout(p.timer);
+    p.timer = setTimeout(function(){ p.bub.classList.remove('show'); }, ms || 3200);
+  }
+  function addFeed(name, text, mine){
+    var empty = feed.querySelector('.empty'); if(empty) feed.removeChild(empty);
+    var li = document.createElement('li');
+    if(mine) li.className = 'mine';
+    var s = document.createElement('small'); s.textContent = name;
+    var t = document.createElement('span'); t.textContent = text;
+    li.appendChild(s); li.appendChild(t);
+    feed.insertBefore(li, feed.firstChild);
+    while(feed.children.length > 8) feed.removeChild(feed.lastChild);
+  }
+  function resetFeed(){
+    feed.innerHTML = '';
+    var li = document.createElement('li'); li.className = 'empty';
+    li.textContent = '아직 이야기가 없어요. 먼저 인사해 보세요.';
+    feed.appendChild(li);
+  }
+  function showSay(id, text){
+    var p = peers[id]; if(!p) return;
+    bubble(p, text);
+    var mine = (id === meId);
+    addFeed(mine ? p.name + ' (나)' : p.name, text, mine);
+    if(mine) statusEl.textContent = '“' + text + '” 라고 전했어요.';
+  }
+
+  function setMode(m){
+    mode = m;
+    var live = (m === 'live');
+    $('#brandSub').textContent = live ? '실시간 접속 중' : (m === 'demo' ? '시연 화면 · 과제 발표용' : '연결 중');
+    $('#modeNote').textContent = live ? '(실시간)' : (m === 'demo' ? '(시연 예시)' : '');
+    $('#feedHint').textContent = live ? '같은 마당에 들어온 분들의 인사가 실시간으로 보여요.' : '다른 분들의 인사와 대답은 시연을 위한 예시예요.';
+  }
+
+  /* 인사와 이야기 버튼 */
+  PHRASES.forEach(function(text, i){
+    var b = document.createElement('button');
+    b.type = 'button';
+    if(i < GREET_N){ b.className = 'btn btn-soft'; $('#greet').appendChild(b); }
+    else { b.className = 'chip'; $('#talk').appendChild(b); }
+    b.textContent = text;
+    b.addEventListener('click', function(){ doSay(i); });
+  });
+  function doSay(i){
+    var now = Date.now();
+    if(now - lastSay < 1500){ statusEl.textContent = '잠시 후에 다시 눌러 주세요.'; return; }
+    if(mode === 'live'){
+      if(ws && ws.readyState === 1){ lastSay = now; ws.send(JSON.stringify({t:'say', i:i})); }
+    } else if(mode === 'demo'){
+      lastSay = now;
+      showSay(meId, PHRASES[i]);
+      setTimeout(function(){
+        var ids = Object.keys(peers).filter(function(k){ return k !== meId; });
+        if(ids.length) showSay(pick(ids), REPLIES[i]);
+      }, 1400);
+    }
+  }
+
+  /* 움직이기: 방향키, 화면 터치, 방향 버튼 */
+  var keys = {l:0, r:0, u:0, d:0}, target = null, dirty = false, lastSent = 0, lastT = performance.now();
+  var KEYMAP = {ArrowLeft:'l', ArrowRight:'r', ArrowUp:'u', ArrowDown:'d'};
+  function onPlaza(){ return !$('#panel-plaza').hidden; }
+  window.addEventListener('keydown', function(e){
+    var k = KEYMAP[e.key]; if(!k || !onPlaza()) return;
+    keys[k] = 1; e.preventDefault();
+  });
+  window.addEventListener('keyup', function(e){ var k = KEYMAP[e.key]; if(k) keys[k] = 0; });
+  window.addEventListener('blur', function(){ keys.l = keys.r = keys.u = keys.d = 0; });
+  Array.prototype.forEach.call(document.querySelectorAll('#dpad button'), function(b){
+    var k = b.getAttribute('data-dir');
+    function down(e){ e.preventDefault(); keys[k] = 1; try{ b.setPointerCapture(e.pointerId); }catch(x){} }
+    function up(){ keys[k] = 0; }
+    b.addEventListener('pointerdown', down);
+    b.addEventListener('pointerup', up);
+    b.addEventListener('pointercancel', up);
+    b.addEventListener('lostpointercapture', up);
+    b.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+  });
+  scene.addEventListener('pointerdown', function(e){
+    var r = scene.getBoundingClientRect();
+    target = {
+      x: clamp((e.clientX - r.left) / r.width * 100, XMIN, XMAX),
+      y: clamp((e.clientY - r.top) / r.height * 100, YMIN, YMAX)
+    };
+  });
+  function frame(now){
+    var dt = Math.min(0.06, (now - lastT) / 1000); lastT = now;
+    var me = peers[meId];
+    if(me){
+      var vx = keys.r - keys.l, vy = keys.d - keys.u, snap = false, dx = 0, dy = 0;
+      if(vx || vy){ target = null; }
+      else if(target){
+        dx = target.x - me.x; dy = target.y - me.y;
+        var dist = Math.sqrt(dx*dx + dy*dy);
+        if(dist < 0.3){ target = null; } else { vx = dx / dist; vy = dy / dist; snap = true; }
+      }
+      if(vx || vy){
+        var len = Math.sqrt(vx*vx + vy*vy) || 1;
+        var mx = vx / len * SPEED * dt, my = vy / len * SPEED * 0.55 * dt;
+        var nx = (snap && Math.abs(mx) >= Math.abs(dx)) ? target.x : me.x + mx;
+        var ny = (snap && Math.abs(my) >= Math.abs(dy)) ? target.y : me.y + my;
+        setPos(me, clamp(nx, XMIN, XMAX), clamp(ny, YMIN, YMAX));
+        dirty = true;
+      }
+      if(dirty && now - lastSent >= 100){
+        dirty = false; lastSent = now;
+        if(mode === 'live' && ws && ws.readyState === 1) ws.send(JSON.stringify({t:'move', x:me.x, y:me.y}));
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  /* 시연 모드: 서버가 없을 때 가상의 이웃과 함께 보여줘요 */
+  function startDemo(){
+    setMode('demo'); clearPeers(); resetFeed();
+    var names = ['따뜻한 햇살','푸른 하늘','고운 단풍','환한 달빛','잔잔한 바람','든든한 바위'];
+    var pos = [[20,68],[36,80],[64,78],[80,70],[30,60],[70,60]];
+    meId = 'me';
+    var me = addPeer({id:'me', name:'느긋한 구름', look:0, x:50, y:88}, true);
+    $('#myname').textContent = me.name;
+    names.forEach(function(n, i){ addPeer({id:'n'+i, name:n, look:i+1, x:pos[i][0], y:pos[i][1]}, false, '1.8s'); });
+    addFeed('고운 단풍', '오늘도 다들 건강하세요', false);
+    addFeed('푸른 하늘', '안녕하세요, 반가워요', false);
+    addFeed('따뜻한 햇살', '좋은 아침이에요', false);
+    statusEl.textContent = '화살표 버튼이나 마당 그림을 눌러 움직여 보세요. 컴퓨터는 방향키도 돼요.';
+    demoTimers.push(setInterval(function(){
+      if(document.hidden) return;
+      Object.keys(peers).forEach(function(id){
+        if(id === meId || Math.random() < 0.5) return;
+        var p = peers[id];
+        setPos(p, clamp(p.x + (Math.random()*16 - 8), 10, 90), clamp(p.y + (Math.random()*10 - 5), 56, 86));
+      });
+    }, 2200));
+    demoTimers.push(setInterval(function(){
+      if(document.hidden) return;
+      var ids = Object.keys(peers).filter(function(k){ return k !== meId; });
+      if(ids.length) bubble(peers[pick(ids)], pick(PHRASES.slice(0, GREET_N)), 2600);
+    }, 6500));
+    setTimeout(function(){ if(peers.n0) bubble(peers.n0, '안녕하세요', 2600); }, 600);
+  }
+
+  /* 실시간 접속 */
+  function handle(raw){
+    var m; try{ m = JSON.parse(raw); }catch(e){ return; }
+    if(!m || typeof m.t !== 'string') return;
+    if(m.t === 'hello'){
+      everLive = true; retry = 0;
+      clearPeers(); resetFeed(); setMode('live');
+      meId = m.me.id;
+      var me = addPeer(m.me, true);
+      $('#myname').textContent = me.name;
+      (m.peers || []).forEach(function(p){ addPeer(p, false); });
+      statusEl.textContent = '들어오셨어요. 화살표 버튼이나 마당 그림을 눌러 움직여 보세요. 컴퓨터는 방향키도 돼요.';
+    } else if(m.t === 'join'){
+      if(m.p) addPeer(m.p, false);
+    } else if(m.t === 'move'){
+      var p = peers[m.id];
+      if(p && m.id !== meId) setPos(p, clamp(Number(m.x)||p.x, XMIN, XMAX), clamp(Number(m.y)||p.y, YMIN, YMAX));
+    } else if(m.t === 'leave'){
+      removePeer(m.id);
+    } else if(m.t === 'say'){
+      var i = Number(m.i);
+      if(Number.isInteger(i) && i >= 0 && i < PHRASES.length) showSay(m.id, PHRASES[i]);
+    } else if(m.t === 'full'){
+      setMode('full');
+      statusEl.textContent = '지금은 마당이 가득 찼어요. 잠시 후 다시 들어와 주세요.';
+    }
+  }
+  function connect(){
+    if(!/^https?:$/.test(location.protocol) || !location.host){ startDemo(); return; }
+    var proto = location.protocol === 'https:' ? 'wss://' : 'ws://';
+    var opened = false, sock;
+    try{ sock = new WebSocket(proto + location.host + '/ws'); }
+    catch(e){ if(!everLive) startDemo(); return; }
+    ws = sock;
+    var guard = setTimeout(function(){ if(!opened){ try{ sock.close(); }catch(e){} } }, 4000);
+    sock.onopen = function(){ opened = true; clearTimeout(guard); };
+    sock.onmessage = function(ev){ handle(ev.data); };
+    sock.onerror = function(){};
+    sock.onclose = function(){
+      clearTimeout(guard);
+      if(ws !== sock || mode === 'full') return;
+      if(!opened && !everLive){ startDemo(); return; }
+      clearPeers(); setMode('connecting');
+      statusEl.textContent = '연결이 끊겼어요. 다시 연결하는 중이에요…';
+      retry++;
+      setTimeout(connect, Math.min(8000, 1500 * retry));
+    };
+  }
+  setMode('connecting');
+  statusEl.textContent = '마당에 들어가는 중이에요…';
+  connect();
+
+  /* ---------- 명상 ---------- */
+  var orb = $('#orb'), guide = $('#guide'), remain = $('#remain'), btn = $('#breathBtn');
+  var minutes = 3, running = false, elapsed = 0, total = 0, tick = null;
+  $('#durs').addEventListener('click', function(e){
+    var b = e.target.closest('button'); if(!b || running) return;
+    minutes = Number(b.getAttribute('data-min'));
+    Array.prototype.forEach.call($('#durs').children, function(c){ c.setAttribute('aria-pressed', String(c===b)); });
+  });
+  function fmt(s){ var m=Math.floor(s/60), r=s%60; return m+':'+(r<10?'0':'')+r; }
+  function stepBreath(){
+    var pos = elapsed % 10;
+    if(pos < 4){
+      guide.textContent = '코로 천천히 들이쉬세요';
+      orb.textContent = String(4-pos);
+      if(pos===0 && !reduce){ orb.style.transitionDuration='4s'; orb.style.transform='scale(1.45)'; }
+    } else {
+      guide.textContent = '입으로 길게 내쉬세요';
+      orb.textContent = String(10-pos);
+      if(pos===4 && !reduce){ orb.style.transitionDuration='6s'; orb.style.transform='scale(1)'; }
+    }
+    remain.textContent = '남은 시간 '+fmt(total-elapsed)+' · 함께하는 분 8명 (시연 예시)';
+  }
+  function stopBreath(done){
+    running = false; clearInterval(tick);
+    orb.style.transitionDuration='1s'; orb.style.transform='scale(1)'; orb.textContent='4';
+    btn.textContent = '시작하기';
+    if(done){
+      guide.textContent = '수고하셨어요. '+minutes+'분 명상을 마쳤어요.';
+      remain.textContent = '오늘도 마음이 한결 가벼워지길 바라요.';
+    } else {
+      guide.textContent = '의자에 편하게 앉아 어깨 힘을 빼 주세요';
+      remain.textContent = '함께하는 분 8명 (시연 예시)';
+    }
+  }
+  btn.addEventListener('click', function(){
+    if(running){ stopBreath(false); return; }
+    running = true; elapsed = 0; total = minutes*60;
+    btn.textContent = '그만하기';
+    stepBreath();
+    tick = setInterval(function(){
+      elapsed++;
+      if(elapsed >= total){ stopBreath(true); return; }
+      stepBreath();
+    }, 1000);
+  });
+
+  /* ---------- 상담 예약 안내 ---------- */
+  var DOC = avatar({cloth:'#FFFFFF', hair:'#3d3d3d', extra:'<rect x="21" y="34" width="6" height="22" fill="#DCEFE9"/><path d="M24 40v8M20 44h8" stroke="#1B6B5F" stroke-width="2.4" stroke-linecap="round"/>'});
+  var SW  = avatar({cloth:'#5E9E6E', hair:'#7a4a3a', extra:'<path d="M24 50 Q18 45 20 41 Q22 38 24 41 Q26 38 28 41 Q30 45 24 50Z" fill="#fff"/>'});
+  var WHO = {
+    doc:{name:'의사 선생님', role:'건강 상담 안내', svg:DOC,
+      speech:'안녕하세요. 저는 상담 안내를 돕는 AI 캐릭터예요. 진료나 처방은 하지 않고, 건강 상담 예약과 가까운 기관 안내를 도와드려요.',
+      topics:['혈압·혈당 관리','약 복용 문의','운동과 영양','마음 건강'], label:'건강 상담'},
+    sw:{name:'복지사 선생님', role:'복지 상담 안내', svg:SW,
+      speech:'안녕하세요. 저는 복지 안내를 돕는 AI 캐릭터예요. 대상이 되는지는 판단하지 않고, 상담 예약과 알맞은 기관 안내를 도와드려요.',
+      topics:['돌봄·식사 지원','주거·생활','일자리·여가','복지 혜택 안내'], label:'복지 상담'}
+  };
+  var TIMES = ['오전 10:00','오후 2:00','오후 4:00'];
+  var sel = {who:null, topic:null, day:null, time:null};
+  var whoBox = $('#who');
+  Object.keys(WHO).forEach(function(k){
+    var w = WHO[k];
+    var b = document.createElement('button');
+    b.type='button'; b.className='who-card'; b.setAttribute('aria-pressed','false'); b.setAttribute('data-k',k);
+    b.innerHTML = w.svg+'<b>'+w.name+'</b><span class="badge">AI 안내</span><span>'+w.role+'</span>';
+    b.addEventListener('click', function(){ chooseWho(k); });
+    whoBox.appendChild(b);
+  });
+  function days(){
+    var out=[], d=new Date(), names=['일','월','화','수','목','금','토'];
+    while(out.length<3){
+      d = new Date(d.getTime()+86400000);
+      if(d.getDay()===0||d.getDay()===6) continue;
+      out.push((d.getMonth()+1)+'월 '+d.getDate()+'일 ('+names[d.getDay()]+')');
+    }
+    return out;
+  }
+  function chipset(el, items, key){
+    el.innerHTML='';
+    items.forEach(function(t){
+      var b=document.createElement('button');
+      b.type='button'; b.className='chip'; b.textContent=t; b.setAttribute('aria-pressed','false');
+      b.addEventListener('click', function(){
+        sel[key]=t;
+        Array.prototype.forEach.call(el.children,function(c){ c.setAttribute('aria-pressed', String(c===b)); });
+        refresh();
+      });
+      el.appendChild(b);
+    });
+  }
+  function refresh(){
+    var ok = sel.topic && sel.day && sel.time;
+    $('#submit').disabled = !ok;
+    $('#submitHint').textContent = ok ? '선택한 내용으로 예약을 신청해요.' : '세 가지를 모두 고르면 눌러져요.';
+  }
+  function chooseWho(k){
+    sel = {who:k, topic:null, day:null, time:null};
+    Array.prototype.forEach.call(whoBox.children,function(c){ c.setAttribute('aria-pressed', String(c.getAttribute('data-k')===k)); });
+    $('#speech').textContent = WHO[k].speech;
+    chipset($('#c-topics'), WHO[k].topics, 'topic');
+    chipset($('#c-days'), days(), 'day');
+    chipset($('#c-times'), TIMES, 'time');
+    $('#flow').hidden = false; $('#done').hidden = true;
+    refresh();
+  }
+  $('#submit').addEventListener('click', function(){
+    var w = WHO[sel.who];
+    $('#summary').innerHTML = '';
+    [['상담 분야', w.label+' ('+w.name+' 안내)'],['도움이 필요한 내용', sel.topic],['희망 날짜', sel.day],['희망 시간', sel.time]].forEach(function(r){
+      var dt=document.createElement('dt'), dd=document.createElement('dd');
+      dt.textContent=r[0]; dd.textContent=r[1];
+      $('#summary').appendChild(dt); $('#summary').appendChild(dd);
+    });
+    $('#flow').hidden = true; $('#done').hidden = false;
+    $('#done').scrollIntoView({block:'nearest'});
+  });
+  $('#again').addEventListener('click', function(){
+    sel = {who:null, topic:null, day:null, time:null};
+    $('#flow').hidden = true; $('#done').hidden = true;
+    Array.prototype.forEach.call(whoBox.children,function(c){ c.setAttribute('aria-pressed','false'); });
+  });
+
+  /* ---------- 탭 ---------- */
+  var TABS = ['plaza','breath','consult','about'];
+  function show(){
+    var id = (location.hash||'').replace('#','');
+    if(TABS.indexOf(id)<0) id='plaza';
+    TABS.forEach(function(t){
+      $('#panel-'+t).hidden = (t!==id);
+      var a = $('nav a[data-tab="'+t+'"]');
+      if(t===id) a.setAttribute('aria-current','page'); else a.removeAttribute('aria-current');
+    });
+    if(id!=='breath' && running) stopBreath(false);
+    window.scrollTo(0,0);
+  }
+  window.addEventListener('hashchange', show);
+  show();
+})();
+</script>
+</body>
+</html>

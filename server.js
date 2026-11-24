@@ -23,7 +23,14 @@ const X_MIN = 6, X_MAX = 94, Y_MIN = 54, Y_MAX = 93;
 const ADJ = ['따뜻한','푸른','느긋한','고운','환한','잔잔한','든든한','맑은','포근한','싱그러운','넉넉한','은은한','다정한','고요한','반짝이는','향긋한'];
 const NOUN = ['햇살','하늘','구름','단풍','달빛','바람','바위','시냇물','솔잎','들꽃','노을','새벽','호수','언덕','별빛','국화'];
 
-const indexHtml = fs.readFileSync(path.join(__dirname, 'public', 'index.html'));
+// 화면 파일은 public/index.html 이나 같은 폴더의 index.html 중 있는 쪽을 써요.
+const htmlPath = [path.join(__dirname, 'public', 'index.html'), path.join(__dirname, 'index.html')]
+  .find((p) => fs.existsSync(p));
+if (!htmlPath) {
+  console.error('index.html 을 찾지 못했어요. server.js 와 같은 폴더(또는 public 폴더)에 index.html 을 넣어 주세요.');
+  process.exit(1);
+}
+const indexHtml = fs.readFileSync(htmlPath);
 
 const rooms = [];            // { id, players: Map }
 let nextPlayerId = 1;
